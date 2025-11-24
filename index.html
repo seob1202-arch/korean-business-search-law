@@ -932,6 +932,33 @@
             white-space: nowrap;
             border-width: 0;
         }
+
+        /* ========== Toast Notification ========== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-full);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s var(--transition);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -1029,6 +1056,13 @@
         
         <div id="pagination-section"></div>
     </main>
+
+    <div id="toast" class="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>이메일 주소가 복사되었습니다</span>
+    </div>
     
     <script>
     (function() {
@@ -1106,6 +1140,32 @@
             totalCities: document.getElementById('total-cities')
         };
         
+        // 토스트 메시지 표시 함수
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const textSpan = toast.querySelector('span');
+            textSpan.textContent = message;
+            
+            toast.classList.add('show');
+            
+            // 3초 후 사라짐
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // 이메일 복사 함수 (전역으로 노출)
+        window.copyEmail = function(email) {
+            if (!email) return;
+            
+            navigator.clipboard.writeText(email).then(() => {
+                showToast(`'${email}' 주소가 복사되었습니다.`);
+            }).catch(err => {
+                console.error('복사 실패:', err);
+                showToast('주소 복사에 실패했습니다.');
+            });
+        };
+        
         let searchTimeout = null;
         
         async function init() {
@@ -1121,6 +1181,7 @@
                 populateCountries();
                 populateCategories();
                 setupEvents();
+                // 위치 권한 요청 함수(getUserLocation) 삭제됨
                 
                 renderResults();
                 renderPagination();
@@ -1348,7 +1409,10 @@
                 ).join('');
                 
                 const email = b.email 
-                    ? `<a href="mailto:${escapeHtml(b.email)}" class="action-btn">${ICONS.email}<span class="action-label">이메일</span></a>`
+                    ? `<button type="button" onclick="copyEmail('${escapeHtml(b.email)}')" class="action-btn">
+                           ${ICONS.email}
+                           <span class="action-label">이메일 복사</span>
+                       </button>`
                     : '';
                 
                 const website = b.website
@@ -1410,7 +1474,13 @@
             data.forEach(b => {
                 const row = document.createElement('tr');
                 const tags = b.services.map(s => `<span class="tag">${escapeHtml(s)}</span>`).join('');
-                const email = b.email ? `<a href="mailto:${escapeHtml(b.email)}" class="table-action-btn" title="이메일">${ICONS.email}</a>` : '';
+                
+                const email = b.email 
+                    ? `<button type="button" onclick="copyEmail('${escapeHtml(b.email)}')" class="table-action-btn" title="이메일 복사">
+                           ${ICONS.email}
+                       </button>`
+                    : '';
+                    
                 const website = b.website ? `<a href="https://post.naver.com/${escapeHtml(b.website)}" target="_blank" rel="noopener" class="table-action-btn" title="웹사이트">${ICONS.web}</a>` : '';
                 
                 row.innerHTML = `
